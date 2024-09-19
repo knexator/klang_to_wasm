@@ -70,7 +70,6 @@ function block_to_llvm(block_name: string, b: Block): string {
     code += '\n\notherwise:\n';
     code += '   unreachable\n';
     code += '}\n';
-    code += '\n@memory = external global i8, align 1';
     return code;
 }
 
@@ -116,7 +115,31 @@ function after_to_llvm(asdf: After): string {
                 throw new Error("notdone");
             }
         } else if (asdf.expression instanceof FuncCall) {
-            throw new Error("notdone");
+            if (asdf.after.length !== 1) throw new Error('notdone');
+            const next_var = asdf.after[0].pattern;
+            const next_asdfasdf = asdf.after[0].after;
+            if (!(next_var instanceof VarName)) throw new Error("not done");
+            const [next_var_type, next_var_name] = to_llvm_name_and_type(next_var.name);
+            let expr: string;
+
+            switch (asdf.expression.func_name) {
+                case 'fmul': {
+                    const [arg_0, arg_1, ...extra] = asdf.expression.args;
+                    if (extra.length > 0) throw new Error("bad");
+                    expr = `fmul ${toLlvmArg(arg_0)}, ${toLlvmArg(arg_1)}`
+                    break;
+                }
+                case 'fptosi': {
+                    const [arg_0, ...extra] = asdf.expression.args;
+                    if (extra.length > 0) throw new Error("bad");
+                    expr = `fptosi ${toLlvmArg(arg_0)} to i32`
+                    break;
+                }
+
+                default:
+                    throw new Error(`func not done: ${asdf.expression.func_name}`);
+            }
+            return `%${next_var_name} = ${expr}\n` + after_to_llvm(next_asdfasdf);
             // const fn_name = asdf.expression.func_name;
             // const fn_args = asdf.expression.args;
             // const afters = asdf.after;
@@ -181,7 +204,7 @@ console.log(code.print());
 console.log(block_to_llvm("xxx", code));
 console.log(expected_llvm);
 
-Deno.writeTextFileSync("llvm.ll",
+Deno.writeTextFileSync("llvm.ll", '\n@memory = external global i8, align 1' +
     mapMap(blocks, (block_name, block) => block_to_llvm(block_name, block)).join('\n\n'));
 
 function mapMap<K, V, T>(map: Map<K, V>, c: (key: K, val: V) => T): T[] {
@@ -192,3 +215,17 @@ function mapMap<K, V, T>(map: Map<K, V>, c: (key: K, val: V) => T): T[] {
     return result;
 }
 
+function toLlvmArg(arg: Value): string {
+    if (arg instanceof Underscore || arg instanceof Tuple) throw new Error("bad");
+    if (arg instanceof VarName) {
+        const [t, n] = to_llvm_name_and_type(arg.name);
+        return `${t} %${n}`;
+    }
+    if (arg instanceof StringLiteral) {
+        let [t, n] = to_llvm_name_and_type(arg.value);
+        if (t === 'float' && !n.includes('.')) n = n + '.0';
+        return n;
+    }
+    const _: never = arg;
+    throw new Error("unreachable");
+}
