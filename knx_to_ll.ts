@@ -65,7 +65,7 @@ function block_to_llvm(block_name: string, b: Block): string {
         const [type, name] = to_llvm_name_and_type(n);
         return `${type} %${name}`;
     }).join(', ');
-    let code = `define i32 @${block_name}(${args_string}) {`
+    let code = `define i32 @${block_name}(${args_string}) {\n`
     code += after_to_llvm(b.body);
     code += '\n\notherwise:\n';
     code += '   unreachable\n';
@@ -99,9 +99,11 @@ function after_to_llvm(asdf: After): string {
         if (asdf.expression instanceof Quote) {
             if (!(asdf.expression.value instanceof VarName)) throw new Error("bad quote");
             const [type, name] = to_llvm_name_and_type(asdf.expression.value.name);
-            if (asdf.after.length > 2) {
+            if (type !== 'i32') throw new Error("notdone");
+            if (asdf.after.length > 2 && asdf.after.every(({ pattern }) => pattern instanceof StringLiteral)) {
+                // fast case: switch break
                 const stuff = asdf.after.map(({ pattern, after }) => {
-                    if (!(pattern instanceof StringLiteral)) throw new Error("not done");
+                    if (!(pattern instanceof StringLiteral)) throw new Error("unreachable");
                     const [pattern_type, pattern_value] = to_llvm_name_and_type(pattern.value);
                     const block_name = makeBlockName();
                     const block_contents = `${block_name}:
@@ -111,8 +113,36 @@ function after_to_llvm(asdf: After): string {
                 })
                 return `switch ${type} %${name}, label %otherwise [${stuff.map(({ switch_text }) => switch_text).join('\n\t')}]
                 ${stuff.map(({ block_contents }) => block_contents).join('\n')}`
-            } else {
+            } else if (asdf.after.length == 1) {
+                // fast case: no br
                 throw new Error("notdone");
+            } else {
+                // general case: a chain of if/else
+                let block_contents: string[] = [];
+                let chained_checks: string[] = [];
+                for (const { pattern, after } of asdf.after) {
+                    const block_name = makeBlockName();
+                    const rest_block_name = makeBlockName();
+                    if (pattern instanceof StringLiteral) {
+                        const [pattern_type, pattern_value] = to_llvm_name_and_type(pattern.value);
+                        if (pattern_type !== 'i32') throw new Error("bad");
+                        const cond_var_name = makeCondVarName();
+                        chained_checks.push(`%${cond_var_name} = icmp eq i32 %${name}, ${pattern_value}
+                        br i1 %${cond_var_name}, label %${block_name}, label %${rest_block_name}
+                        ${rest_block_name}:\n`);
+                        block_contents.push(`${block_name}:
+                        ${after_to_llvm(after)}`);
+                    } else if (pattern instanceof VarName) {
+                        if (pattern !== asdf.after[asdf.after.length - 1].pattern) throw new Error("bad; single var should always be last");
+                        const [pattern_type, pattern_value] = to_llvm_name_and_type(pattern.name);
+                        if (pattern_type !== 'i32') throw new Error("bad");
+                        chained_checks.push(`%${pattern_value} = add i32 %${name}, 0
+                        ${after_to_llvm(after)}`);
+                    } else {
+                        throw new Error("notdone");
+                    }
+                }
+                return chained_checks.join('\n') + '\n' + block_contents.join('\n');
             }
         } else if (asdf.expression instanceof FuncCall) {
             if (asdf.after.length !== 1) throw new Error('notdone');
@@ -147,15 +177,9 @@ function after_to_llvm(asdf: After): string {
                     expr = `mul ${toLlvmArg(arg_0)}, ${toLlvmArg(arg_1)}`
                     break;
                 }
-                // TODO: remove this case
-                case 'mod2': {
-                    const [arg_0, ...extra] = asdf.expression.args;
-                    if (extra.length > 0) throw new Error("bad");
-                    expr = `urem ${toLlvmArg(arg_0)}, 2`;
-                    break;
-                }
                 default:
-                    throw new Error(`func not done: ${asdf.expression.func_name}`);
+                    // TODO: allow other return values
+                    expr = `call i32 @${asdf.expression.func_name}(${asdf.expression.args.map(toLlvmArg).join(', ')})`
             }
             return `%${next_var_name} = ${expr}\n` + after_to_llvm(next_asdfasdf);
             // const fn_name = asdf.expression.func_name;
@@ -184,6 +208,12 @@ let block_counter = -1;
 function makeBlockName(): string {
     block_counter += 1;
     return `block_${block_counter}`;
+}
+
+let cond_counter = -1;
+function makeCondVarName(): string {
+    cond_counter += 1;
+    return `cond_${cond_counter}`;
 }
 
 const code = new Block(['f:x', 'f:y', 'i:channel'], new MoreStuff(
@@ -222,7 +252,7 @@ console.log(code.print());
 console.log(block_to_llvm("xxx", code));
 console.log(expected_llvm);
 
-Deno.writeTextFileSync("llvm.ll", '\n@memory = external global i8, align 1' +
+Deno.writeTextFileSync("llvm.ll", '\n@memory = external global i8, align 1\n\n' +
     mapMap(blocks, (block_name, block) => block_to_llvm(block_name, block)).join('\n\n'));
 
 function mapMap<K, V, T>(map: Map<K, V>, c: (key: K, val: V) => T): T[] {

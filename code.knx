@@ -23,12 +23,12 @@
     }
 }
 
-// (mod2 i:v) -> (quote i:v) {
-//     #i:0 -> (ret #i:0);
-//     #i:1 -> (ret #i:1);
-//     i:bigger -> (sub i:bigger #i:2) {
-//         i:smaller -> (mod2 i:smaller) {
-//             i:result -> (ret i:result);
-//         }
-//     }
-// }
+(mod2 i:v) -> (quote i:v) {
+    #i:0 -> (ret #i:0);
+    #i:1 -> (ret #i:1);
+    i:bigger -> (sub i:bigger #i:2) {
+        i:smaller -> (mod2 i:smaller) {
+            i:result -> (ret i:result);
+        }
+    }
+}
