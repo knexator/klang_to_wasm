@@ -1,12 +1,16 @@
 const canvas_ctx = document.querySelector("#ctx_canvas");
 const ctx = canvas_ctx.getContext("2d");
 
+const scale = 0.25;
+canvas_ctx.width = Math.floor(canvas_ctx.clientWidth * scale);
+canvas_ctx.height = Math.floor(canvas_ctx.clientHeight * scale);
+
 const asdf = await WebAssembly.instantiateStreaming(fetch("llvm.wasm"));
 const wasm_exports = asdf.instance.exports;
 
 // const bytes = new Uint8Array(wasm_exports.memory.buffer, 0, 10);
 
-const PIXEL_SIZE = 4;
+const PIXEL_SIZE = 1;
 for (let j = 0; j < canvas_ctx.height; j += PIXEL_SIZE) {
     for (let i = 0; i < canvas_ctx.width; i += PIXEL_SIZE) {
         const r = wasm_exports.getPixel(i / canvas_ctx.width, j / canvas_ctx.height, 0);
