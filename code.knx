@@ -12,5 +12,23 @@
         }
     }
     #i:1 -> (ret #i:128);
-    #i:2 -> (ret #i:0);
+    #i:2 -> (fmul f:x #f:16) {
+        f:x_big -> (fptosi f:x_big) {
+            i:int_x -> (mod2 i:int_x) {
+                i:zOr1 -> (mul i:zOr1 #i:255) {
+                    i:res -> (ret i:res);
+                }
+            }
+        }
+    }
 }
+
+// (mod2 i:v) -> (quote i:v) {
+//     #i:0 -> (ret #i:0);
+//     #i:1 -> (ret #i:1);
+//     i:bigger -> (sub i:bigger #i:2) {
+//         i:smaller -> (mod2 i:smaller) {
+//             i:result -> (ret i:result);
+//         }
+//     }
+// }

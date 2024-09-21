@@ -135,7 +135,25 @@ function after_to_llvm(asdf: After): string {
                     expr = `fptosi ${toLlvmArg(arg_0)} to i32`
                     break;
                 }
-
+                case 'sub': {
+                    const [arg_0, arg_1, ...extra] = asdf.expression.args;
+                    if (extra.length > 0) throw new Error("bad");
+                    expr = `sub ${toLlvmArg(arg_0)}, ${toLlvmArg(arg_1)}`
+                    break;
+                }
+                case 'mul': {
+                    const [arg_0, arg_1, ...extra] = asdf.expression.args;
+                    if (extra.length > 0) throw new Error("bad");
+                    expr = `mul ${toLlvmArg(arg_0)}, ${toLlvmArg(arg_1)}`
+                    break;
+                }
+                // TODO: remove this case
+                case 'mod2': {
+                    const [arg_0, ...extra] = asdf.expression.args;
+                    if (extra.length > 0) throw new Error("bad");
+                    expr = `urem ${toLlvmArg(arg_0)}, 2`;
+                    break;
+                }
                 default:
                     throw new Error(`func not done: ${asdf.expression.func_name}`);
             }
