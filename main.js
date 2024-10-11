@@ -12,14 +12,19 @@ const asdf = await WebAssembly.instantiateStreaming(fetch("handmade.wasm"), {
 });
 const wasm_exports = asdf.instance.exports;
 
+console.log(wasm_exports.myTest(1, 2));
+
+console.log(wasm_exports.getRGB(.2, .8));
+
 // const bytes = new Uint8Array(wasm_exports.memory.buffer, 0, 10);
 
 const PIXEL_SIZE = 1;
 for (let j = 0; j < canvas_ctx.height; j += PIXEL_SIZE) {
     for (let i = 0; i < canvas_ctx.width; i += PIXEL_SIZE) {
-        const r = wasm_exports.getPixel(i / canvas_ctx.width, j / canvas_ctx.height, 0);
-        const g = wasm_exports.getPixel(i / canvas_ctx.width, j / canvas_ctx.height, 1);
-        const b = wasm_exports.getPixel(i / canvas_ctx.width, j / canvas_ctx.height, 2);
+        const [r, g, b] = wasm_exports.getRGB(i / canvas_ctx.width, j / canvas_ctx.height);
+        // const r = wasm_exports.getPixel(i / canvas_ctx.width, j / canvas_ctx.height, 0);
+        // const g = wasm_exports.getPixel(i / canvas_ctx.width, j / canvas_ctx.height, 1);
+        // const b = wasm_exports.getPixel(i / canvas_ctx.width, j / canvas_ctx.height, 2);
         ctx.fillStyle = rgbToHex(r,g,b);
         ctx.fillRect(i, j, PIXEL_SIZE, PIXEL_SIZE);
     }
