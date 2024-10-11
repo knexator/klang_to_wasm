@@ -2,7 +2,10 @@ dev:
 	python -m http.server
 
 .PHONY: x
-x: llvm.wasm
+x: handmade.wasm
+
+handmade.wasm: handmade.wat
+	wat2wasm handmade.wat
 
 llvm.ll: code.knx knx_to_ll.ts
 	deno run --allow-write --allow-read ./knx_to_ll.ts code.knx
