@@ -5,7 +5,11 @@ const scale = 0.25;
 canvas_ctx.width = Math.floor(canvas_ctx.clientWidth * scale);
 canvas_ctx.height = Math.floor(canvas_ctx.clientHeight * scale);
 
-const asdf = await WebAssembly.instantiateStreaming(fetch("handmade.wasm"));
+const asdf = await WebAssembly.instantiateStreaming(fetch("handmade.wasm"), {
+    env: {
+        consoleLog: (n) => console.log(n),
+    }
+});
 const wasm_exports = asdf.instance.exports;
 
 // const bytes = new Uint8Array(wasm_exports.memory.buffer, 0, 10);
