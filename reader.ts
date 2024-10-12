@@ -12,6 +12,12 @@ const parser = peggy.default.generate(grammar);
 type ParsedSexpr = string | ParsedSexpr[];
 type Parsed = { pattern: ParsedSexpr, template: ParsedSexpr, next: Parsed[] };
 
+export function readValueFromStr(sexpr: string): Value {
+    // TODO: less hacky
+    const asdf: Parsed[] = parser.parse(sexpr + ' -> _;');
+    return toValue(single(asdf).pattern);
+}
+
 export function readBlocksFromStr(raw_knx: string): Map<string, Block> {
     const asdf: Parsed[] = parser.parse(raw_knx);
 

@@ -818,3 +818,7 @@ function* zip2<T, S>(array1: Iterable<T>, array2: Iterable<S>): Generator<[T, S]
 function substract(main: string[], to_remove: string[]): string[] {
     return main.filter(x => !to_remove.includes(x));
 }
+
+export function testEqValues(test_name: string, expected: Value, got: Value): void {
+    console.log(test_name + (expected.isEqualTo(got) ? ' passed' : ' FAILED'));
+}
