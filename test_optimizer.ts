@@ -1,7 +1,8 @@
 //////////////////////////
 
-import { Block, get, MoreStuff, optimize, Tuple } from "./core.ts";
+import { Block, MoreStuff, optimize, Tuple } from "./core.ts";
 import { readBlocksFromStr } from "./reader.ts";
+import { get } from "./std.ts";
 
 const naive_getfirst_isnull = readBlocksFromStr(`
 

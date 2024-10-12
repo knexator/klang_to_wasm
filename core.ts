@@ -1,6 +1,6 @@
 //// basic values
 
-import { eqArrays, eqArrays2 } from "./std.ts";
+import { combineMaps, ensure, eqArrays, eqArrays2, get, mapFilterValues, mapValues, zipToMap } from "./std.ts";
 
 export class VarName {
     constructor(
@@ -464,26 +464,6 @@ function fillInVariables(value: Value, env: Map<string, Value>): Value {
     }
 }
 
-function combineMaps<K, V>(...maps: Map<K, V>[]): Map<K, V> {
-    const result = new Map<K, V>();
-
-    for (const map of maps) {
-        for (const [key, value] of map) {
-            result.set(key, value);
-        }
-    }
-
-    return result;
-}
-
-export function get<K, V>(map: Map<K, V>, key: K): V {
-    const res = map.get(key);
-    if (res === undefined) {
-        throw new Error(`Could not find key '${key}' in map with keys '${Array(...map.keys())}'`);
-    }
-    return res;
-}
-
 function findBindings(pattern: Value, value: Value): Map<string, Value> | null {
     if (pattern instanceof VarName) {
         return new Map([[pattern.name, value]]);
@@ -520,47 +500,8 @@ function findBindings(pattern: Value, value: Value): Map<string, Value> | null {
     }
 }
 
-// Helper function to check equality of Values
 function areValuesEqual(a: Value, b: Value): boolean {
-    if (a instanceof VarName && b instanceof VarName) {
-        return a.name === b.name;
-    } else if (a instanceof StringLiteral && b instanceof StringLiteral) {
-        return a.value === b.value;
-    } else if (a instanceof Tuple && b instanceof Tuple) {
-        return a.values.length === b.values.length &&
-            a.values.every((v, i) => areValuesEqual(v, b.values[i]));
-    }
-    return false;
-}
-
-function mapValues<K, V, T>(map: Map<K, V>, c: (key: K, val: V) => T): Map<K, T> {
-    const result = new Map<K, T>();
-    for (const [key, value] of map) {
-        result.set(key, c(key, value));
-    }
-    return result;
-}
-
-function mapFilterValues<K, V, T>(map: Map<K, V>, c: (key: K, val: V) => T | null): Map<K, T> {
-    const result = new Map<K, T>();
-    for (const [key, value] of map) {
-        const v = c(key, value);
-        if (v !== null) result.set(key, v);
-    }
-    return result;
-}
-
-
-function zipToMap<K, V>(list_of_keys: K[], list_of_values: V[]): Map<K, V> {
-    if (list_of_keys.length !== list_of_values.length) {
-        throw new Error("The lists of keys and values must have the same length");
-    }
-
-    const result = new Map<K, V>();
-    for (let i = 0; i < list_of_keys.length; i++) {
-        result.set(list_of_keys[i], list_of_values[i]);
-    }
-    return result;
+    return a.isEqualTo(b);
 }
 
 function indent(str: string, level: number): string {
@@ -568,16 +509,11 @@ function indent(str: string, level: number): string {
     return str.split('\n').map(line => indentation + line).join('\n');
 }
 
-function ensure<T>(x: T | null | undefined): T {
-    if (x === null || x === undefined) throw new Error();
-    return x;
-}
-
-function randVarName(): string {
+export function randVarName(): string {
     return 'var_' + (Math.random()).toString().split('.')[1];
 }
 
-function randBlockName(): string {
+export function randBlockName(): string {
     return 'block_' + (Math.random()).toString().split('.')[1];
 }
 

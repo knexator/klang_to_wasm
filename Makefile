@@ -8,6 +8,7 @@ x: handmade.wasm llvm.wasm
 test:
 	deno run --allow-read ./test_basic.ts
 	deno run --allow-read ./test_optimizer.ts
+	deno run --allow-read ./test_self_compiler.ts
 
 handmade.wasm: handmade.wat
 	wat2wasm handmade.wat
