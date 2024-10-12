@@ -1,5 +1,7 @@
 //// basic values
 
+import { eqArrays, eqArrays2 } from "./std.ts";
+
 export class VarName {
     constructor(
         public name: string,
@@ -7,6 +9,11 @@ export class VarName {
 
     print(): string {
         return '@' + this.name;
+    }
+
+    isEqualTo(b: Value): boolean {
+        if (!(b instanceof VarName)) return false;
+        return this.name === b.name;
     }
 
     inlineValues(old_names_to_new_values: Map<string, Value>): Value {
@@ -23,6 +30,11 @@ export class VarName {
 export class Underscore {
     print(): string {
         return '@_';
+    }
+
+    isEqualTo(b: Value): boolean {
+        if (!(b instanceof Underscore)) return false;
+        return true;
     }
 
     inlineValues(old_names_to_new_values: Map<string, Value>): Value {
@@ -43,6 +55,11 @@ export class StringLiteral {
         return this.value;
     }
 
+    isEqualTo(b: Value): boolean {
+        if (!(b instanceof StringLiteral)) return false;
+        return this.value === b.value;
+    }
+
     inlineValues(old_names_to_new_values: Map<string, Value>): Value {
         return this;
     }
@@ -60,6 +77,11 @@ export class Tuple {
     print(): string {
         const innerValues = this.values.map(v => v.print()).join(', ');
         return `(${innerValues})`;
+    }
+
+    isEqualTo(b: Value): boolean {
+        if (!(b instanceof Tuple)) return false;
+        return eqArrays2(this.values, b.values, (x, y) => x.isEqualTo(y));
     }
 
     inlineValues(old_names_to_new_values: Map<string, Value>): Value {
@@ -85,6 +107,11 @@ export class JumpTo {
         const argsStr = this.args.map(x => x.print()).join(', ');
         return `JumpTo(${this.block_name}, [${argsStr}])`;
         // return `JumpTo(\n${indent(`${this.block_name},\n[\n${argsStr}\n]`, 1)}\n}`;
+    }
+
+    isEqualTo(b: After): boolean {
+        if (!(b instanceof JumpTo)) return false;
+        return this.block_name === b.block_name && eqArrays2(this.args, b.args, (x, y) => x.isEqualTo(y));
     }
 
     inlineValues(old_names_to_new_values: Map<string, Value>): JumpTo {
@@ -147,6 +174,11 @@ export class Return {
         return `Return(${this.value.print()})`;
     }
 
+    isEqualTo(b: After): boolean {
+        if (!(b instanceof Return)) return false;
+        return this.value.isEqualTo(b.value);
+    }
+
     inlineValues(old_names_to_new_values: Map<string, Value>): Return {
         return new Return(this.value.inlineValues(old_names_to_new_values));
     }
@@ -183,6 +215,11 @@ export class MoreStuff {
 
     print(): string {
         return `${this.expression.print()}: {\n${this.after.map(({ pattern, after }) => indent(`${pattern.print()} -> ${after.print()}`, 1)).join('\n')}\n}`;
+    }
+
+    isEqualTo(b: After): boolean {
+        if (!(b instanceof MoreStuff)) return false;
+        return this.expression.isEqualTo(b.expression) && eqArrays2(this.after, b.after, (x, y) => x.pattern.isEqualTo(y.pattern) && x.after.isEqualTo(y.after));
     }
 
     inlineValues(old_names_to_new_values: Map<string, Value>): MoreStuff {
@@ -305,6 +342,10 @@ export class Block {
         const inputs = this.input_variables.join(', ');
         return `Block(\n${indent(`inputs: [${inputs}],\nbody: ${this.body.print()}`, 1)}\n${indent(')', 0)}`;
     }
+
+    isEqualTo(b: Block) {
+        return eqArrays(this.input_variables, b.input_variables) && this.body.isEqualTo(b.body);
+    }
 }
 
 //// built in functions
@@ -318,6 +359,11 @@ export class Quote {
 
     print(): string {
         return `Quote(${this.value.print()})`;
+    }
+
+    isEqualTo(b: Expression): boolean {
+        if (!(b instanceof Quote)) return false;
+        return this.value.isEqualTo(b.value);
     }
 
     inlineValues(old_names_to_new_values: Map<string, Value>): Quote {
@@ -338,6 +384,11 @@ export class FuncCall {
     print(): string {
         const argsStr = this.args.map(x => x.print()).join(', ');
         return `FuncCall(${this.func_name}, [${argsStr}])`;
+    }
+
+    isEqualTo(b: Expression): boolean {
+        if (!(b instanceof FuncCall)) return false;
+        return this.func_name === b.func_name && eqArrays2(this.args, b.args, (x, y) => x.isEqualTo(y));
     }
 
     inlineValues(old_names_to_new_values: Map<string, Value>): FuncCall {
@@ -425,7 +476,7 @@ function combineMaps<K, V>(...maps: Map<K, V>[]): Map<K, V> {
     return result;
 }
 
-function get<K, V>(map: Map<K, V>, key: K): V {
+export function get<K, V>(map: Map<K, V>, key: K): V {
     const res = map.get(key);
     if (res === undefined) {
         throw new Error(`Could not find key '${key}' in map with keys '${Array(...map.keys())}'`);

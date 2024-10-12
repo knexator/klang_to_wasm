@@ -1,0 +1,49 @@
+/*
+(isNull (getFirst input))
+->
+(getFirst input) (
+    ( Nothing ($quote True) return ) 
+    ( (Just @thing) ($quote False) return ) 
+)
+->
+input (
+    ( Empty ($quote Nothing) (
+        ( Nothing ($quote True) return ) 
+        ( (Just @thing) ($quote False) return ) 
+    ) ) 
+    ( (Pair @first @rest) ($quote (Just @first)) (
+        ( Nothing ($quote True) return ) 
+        ( (Just @thing) ($quote False) return ) 
+    ) ) 
+)
+
+(krnl main (input)
+    ($getFirst input) (
+        ( @first_or_nothing (isNull @first_or_nothing) return ) 
+    )
+)
+
+(krnl isNull (thing)
+    thing (
+        ( Nothing ($quote True) return ) 
+        ( (Just @thing) ($quote False) return ) 
+    )
+)
+
+(krnl getFirst (list)
+    list (
+        ( Empty ($quote Nothing) return ) 
+        ( (Pair @first @rest) ($quote (Just @first)) return ) 
+    )
+)
+
+main: {
+    getFirst(input) {
+        @first_or_nothing -> isNull(@first_or_nothing);
+    }
+}
+isNull: {
+    Nothing -> $quote(True);
+    (Just @_) -> $quote(False);
+}
+*/

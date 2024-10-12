@@ -2,7 +2,12 @@ dev:
 	python -m http.server
 
 .PHONY: x
-x: handmade.wasm
+x: handmade.wasm llvm.wasm
+
+.PHONY: test
+test:
+	deno run --allow-read ./test_basic.ts
+	deno run --allow-read ./test_optimizer.ts
 
 handmade.wasm: handmade.wat
 	wat2wasm handmade.wat
